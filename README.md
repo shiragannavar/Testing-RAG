@@ -1,6 +1,3 @@
-Sure, here's the content in Markdown up to the License section:
-
-```markdown
 # PDF to Markdown Q&A Generator
 
 This script converts a PDF file into markdown format and uses a Large Language Model (LLM) to generate question-and-answer pairs from the content of each page. The generated Q&A pairs are stored in a CSV file for easy access and further processing.
