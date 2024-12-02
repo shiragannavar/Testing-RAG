@@ -1,4 +1,5 @@
 import groundtruth.ground_generator as gg
+import eval.rag_checker as rag_checker
 
 movies = [
   {
@@ -15,7 +16,15 @@ movies = [
   }
 ]
 
-texts = [ movie["content"] for movie in movies ]
-df = gg.generate_ground_truth(texts, save_to_AstraDB=True, save_to_file=True)
-print(df)
+# texts = [ movie["content"] for movie in movies ]
+# df = gg.generate_ground_truth(texts, save_to_AstraDB=True, save_to_file=True)
+# print(df)
+
+
+
+# Create a RAG chain
+checker_metrics  = rag_checker.run_eval( chain=None, 
+                     ground_truth_from_astra=True,
+                     ground_truth_file=None,
+                     phoenix_project_name="testing-rag",)
 

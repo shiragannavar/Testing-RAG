@@ -3,62 +3,74 @@ import csv
 import json
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI
-from langchain.vectorstores import AstraDB
 from langchain_astradb import AstraDBVectorStore
+from langchain_core.runnables import RunnablePassthrough
 
 from langchain.chains import LLMChain
 from langchain.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
+from astrapy.info import CollectionVectorServiceOptions
+from phoenix.otel import register
+from openinference.instrumentation.langchain import LangChainInstrumentor
+
 
 # Load environment variables
 load_dotenv()
 
-# Configuration
-ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
-ASTRA_DB_ENDPOINT = os.environ["ASTRA_DB_ENDPOINT"]
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-ASTRA_DB_COLLECTION = "pdf_vector"
+def get_default_rag_chain(
+        astradb_collection: str = "collection",
+        collection_vector_service_options = None):
+    # Configuration
+    ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
+    ASTRA_DB_ENDPOINT = os.environ["ASTRA_DB_API_ENDPOINT"]
+    OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+    
+    vectorstore = None 
+    if collection_vector_service_options is not None: 
+        vectorstore = AstraDBVectorStore(
+            collection_vector_service_options=collection_vector_service_options,
+            collection_name=astradb_collection,
+            token=ASTRA_DB_APPLICATION_TOKEN,
+            api_endpoint=ASTRA_DB_ENDPOINT,
+        )
+    else:
+        embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        vectorstore = AstraDBVectorStore(
+            embedding=embedding,
+            collection_name=astradb_collection,
+            token=ASTRA_DB_APPLICATION_TOKEN,
+            api_endpoint=ASTRA_DB_ENDPOINT,
+        )
 
-# Initialize embedding model
-embedding = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    # Initialize OpenAI LLM
+    llm = OpenAI(openai_api_key=OPENAI_API_KEY)
 
-# Initialize AstraDB vector store
-vectorstore = AstraDBVectorStore(
-    embedding=embedding,
-    collection_name=ASTRA_DB_COLLECTION,
-    token=ASTRA_DB_APPLICATION_TOKEN,
-    api_endpoint=ASTRA_DB_ENDPOINT,
-)
+    # Define the prompt template
+    ANSWER_PROMPT = ChatPromptTemplate.from_template(
+        """You are an expert assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know.
 
-# Initialize OpenAI LLM
-llm = OpenAI(openai_api_key=OPENAI_API_KEY)
+            Context:
+            {context}
 
-# Define the prompt template
-ANSWER_PROMPT = ChatPromptTemplate.from_template(
-    """You are an expert assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know.
+            Question: "{question}"
+            Answer:"""
+            )
+    chain = {"context":vectorstore.as_retriever(), "question": RunnablePassthrough()} | ANSWER_PROMPT | llm 
+    return chain 
 
-Context:
-{context}
-
-Question: "{question}"
-Answer:"""
-)
-
-def retrieve_documents(query, top_k=4):
-    """Retrieve top_k documents relevant to the query from AstraDB vector store."""
-    retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
-    docs = retriever.get_relevant_documents(query)
-    return docs
-
-def generate_answer(question, context_documents):
-    """Generate answer using LLM and provided context."""
-    context = "\n\n".join([doc.page_content for doc in context_documents])
-    chain = LLMChain(
-        llm=llm,
-        prompt=ANSWER_PROMPT,
+def run_eval():
+    tracer_provider = register(
+        project_name="<unique-id>", 
+        endpoint="http://localhost:6006/v1/traces",
     )
-    answer = chain.run(context=context, question=question)
-    return answer
+    LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
+
+    # start the phoenix server
+    # download GT
+    # run eval for GT
+    # download spans from Phoenix - use the same id
+    # construct RAGChecker file format
+    # ragchecker
 
 if __name__ == "__main__":
     # Read the CSV file
