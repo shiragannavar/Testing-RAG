@@ -1,5 +1,7 @@
+import json 
 import groundtruth.ground_generator as gg
-## Generate Groundtruth
+
+## Generate Groundtruth for a dataset
 movies = [
   {
     "id": 653346,
@@ -15,46 +17,30 @@ movies = [
   }
 ]
 
-texts = [ movie["content"] for movie in movies ]
-df = gg.generate_ground_truth(texts, save_to_AstraDB=True, save_to_file=True)
-print(df)
+# texts = [ movie["content"] for movie in movies ]
+# df = gg.generate_ground_truth(texts, save_to_AstraDB=True, save_to_file=True)
+# print(df)
 
 
-### Generate RAGChecker file
+### Generate RAGChecker Metrics
 
 import time 
 import eval.rag_checker as rc
 
 chain = rc.get_default_rag_chain( astradb_collection='movies')
 project_name = f"my-eval-app.{time.time()}"
-print("Project Name: ", project_name)
+ragchecker_file = "ragchecker_input.json"
+metrics_file_name = "metrics.json"
+ground_truth_file = "gt.csv"
+
 session = rc.start_phoenix_session(project_name=project_name)
-rc.run_eval(chain, "qa_output.csv")
-
-# project_name="my-eval-app.1733305345.8140092"
-ragchecker = rc.get_ragchecker_file(None, project_name, "qa_output.csv")
-
-from ragchecker import RAGResults, RAGChecker
-from ragchecker.metrics import all_metrics
-import tempfile, json
-
-with open("output.json") as fp:
-  rag_results = RAGResults.from_json(fp.read())
-
-# set-up the evaluator
-evaluator = RAGChecker(
-  extractor_name="openai/gpt-4-turbo",
-  checker_name="openai/gpt-4-turbo",
-  batch_size_extractor=10,
-  batch_size_checker=10
-)
-
-# evaluate results with selected metrics or certain groups, e.g., retriever_metrics, generator_metrics, all_metrics
-evaluator.evaluate(rag_results, all_metrics)
-print(rag_results)
-temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
-with open(temp_file.name, "w") as f:
-    json.dump(rag_results.metrics, f)
+rc.run_eval(chain, ground_truth_file)
+rc.get_ragchecker_input(session=None, 
+                        phoenix_project_name=project_name, 
+                        ground_truth_file=ground_truth_file,
+                        ragchecker_file=ragchecker_file)
+rc.compute_ragchecker_metrics(input_file_name=ragchecker_file, 
+                              metrics_file_name=metrics_file_name)
 
 from flask import Flask, render_template
 
@@ -62,9 +48,8 @@ from flask import Flask, render_template
 app = Flask(__name__)
 
 @app.route("/")
-def display_metrics():
-    # Read metrics from the temporary file
-    with open(temp_file.name, "r") as f:
+def display_metrics():    
+    with open(metrics_file_name, "r") as f:
         metrics = json.load(f)
     return render_template("metrics.html", metrics=metrics)
 

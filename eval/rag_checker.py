@@ -12,6 +12,9 @@ from phoenix.otel import register
 import phoenix as px 
 from openinference.instrumentation.langchain import LangChainInstrumentor
 import pandas as pd 
+from ragchecker import RAGResults, RAGChecker
+from ragchecker.metrics import all_metrics
+import tempfile, json
 
 load_dotenv()
 
@@ -77,9 +80,10 @@ def start_phoenix_session(project_name = "rag-eval"):
     LangChainInstrumentor().instrument(tracer_provider=tracer_provider)    
     return session
 
-def get_ragchecker_file(session: px.Session, 
+def get_ragchecker_input(session: px.Session, 
                         phoenix_project_name: str, 
-                        ground_truth_file: str):
+                        ground_truth_file: str,
+                        ragchecker_file: str = 'output.json'):
     qa_df = pd.read_csv(ground_truth_file)
     gt_map = {}
     for idx,row in qa_df.iterrows():
@@ -103,6 +107,21 @@ def get_ragchecker_file(session: px.Session,
         }        
         rag_checker_results.append(result_entry)
     output = {'results': rag_checker_results}
-    with open('output.json', 'w', encoding='utf-8') as jsonfile:
+    with open(ragchecker_file, 'w', encoding='utf-8') as jsonfile:
         json.dump(output, jsonfile, indent=2)
     return rag_checker_results    
+
+def compute_ragchecker_metrics(input_file_name, metrics_file_name):
+    with open(input_file_name) as fp:
+        rag_results = RAGResults.from_json(fp.read())
+    evaluator = RAGChecker(
+        extractor_name="openai/gpt-4-turbo",
+        checker_name="openai/gpt-4-turbo",
+        batch_size_extractor=10,
+        batch_size_checker=10
+    )
+    evaluator.evaluate(rag_results, all_metrics)    
+    if metrics_file_name is not None: 
+        with open(metrics_file_name, "w") as f:
+            json.dump(rag_results.metrics, f)
+    return rag_results.metrics
