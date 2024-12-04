@@ -5,7 +5,7 @@ import os
 
 
 # initialize ragresults from json/dict
-with open("output.json") as fp:
+with open("/Users/adarsh.shiragannavar/Documents/GitHub/Testing-RAG/output.json") as fp:
     rag_results = RAGResults.from_json(fp.read())
 
 # set-up the evaluator

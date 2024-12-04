@@ -16,12 +16,13 @@ import pandas as pd
 load_dotenv()
 
 def get_default_rag_chain(
-        astradb_collection: str = "collection",
+        astradb_collection: str = "movies",
         collection_vector_service_options = None):
     # Configuration
     ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
     ASTRA_DB_ENDPOINT = os.environ["ASTRA_DB_API_ENDPOINT"]
-    OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]    
+    OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+    print(OPENAI_API_KEY)
     vectorstore = None 
     if collection_vector_service_options is not None: 
         vectorstore = AstraDBVectorStore(
