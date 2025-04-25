@@ -1,0 +1,38 @@
+name: Auto Create GitHub Issues
+on:
+  workflow_dispatch:
+permissions:
+  issues: write
+jobs:
+  create_issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create predefined issues
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issues = [
+              { title: "Hard-coded absolute paths", body: "load_data.py and example_client.py both use absolute file paths (e.g., /Users/...) and model directories. This makes the code non-portable. Suggest parameterizing file and model paths or using relative paths." },
+              { title: "Missing module initializers", body: "The groundtruth/ and eval/ directories lack __init__.py files, causing import issues in some environments. Add __init__.py to treat them as packages." },
+              { title: "Duplicate imports and inconsistent import style", body: "ground_generator.py imports BaseModel and Field twice. Import ordering and style are inconsistent across modules. Clean up duplicates and enforce a consistent import format." },
+              { title: "Leaking secrets in logs", body: "eval/rag_checker.py prints OPENAI_API_KEY to stdout, which leaks secrets in logs. Remove this print or mask the key." },
+              { title: "Rigid environment and configuration", body: "Phoenix trace endpoint, database tokens, and other settings are hard-coded or only configurable via .env. Introduce CLI flags or config files for flexibility." },
+              { title: "Basic error handling and CSV header duplication", body: "Ground truth generator swallows exceptions and continues without reporting errors. CSV append mode may duplicate headers across runs. Improve error handling and CSV header management." },
+              { title: "Cluttered example_client.py with commented code", body: "example_client.py contains large blocks of commented code, making it hard to follow. Refactor into clear example scripts or provide a CLI entrypoint." },
+              { title: "No tests or CI integration", body: "There are no tests or CI workflows configured. Add unit tests and a GitHub Actions pipeline for linting and testing." },
+              { title: "Potential dependency mismatches", body: "requirements.txt pins multiple langchain subpackages that might conflict. Verify and unify dependency versions to ensure compatibility." },
+              { title: "Template–metrics JSON shape mismatch", body: "metrics.html template expects metrics['overall_metrics'], metrics['retriever_metrics'], and metrics['generator_metrics'], but compute_ragchecker_metrics outputs a flat metrics dict. Align JSON output structure or update the template." },
+              { title: "No packaging or entry points", body: "The project lacks setup.py or pyproject.toml and has no console_scripts entry points. Consider packaging it as an installable Python module with CLI commands." },
+              { title: "Sparse AstraDB documentation", body: "Documentation on AstraDB integration is minimal. Provide examples for creating databases, collections, and querying in code or CLI." },
+              { title: "Use structured logging instead of print()", body: "The code uses print() for logging. Replace prints with Python's logging module for log levels and better formatting." },
+              { title: "Remove stale/unused files", body: "Several files and folders (e.g., metrics1.json, metrics2.json, gt1.csv, local_cache/compiler) appear unused or stale. Clean up or move them to an examples folder." }
+            ];
+            for (const issue of issues) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issue.title,
+                body: issue.body
+              });
+            }
