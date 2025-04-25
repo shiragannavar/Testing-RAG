@@ -25,7 +25,7 @@ def get_default_rag_chain(
     ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
     ASTRA_DB_ENDPOINT = os.environ["ASTRA_DB_API_ENDPOINT"]
     OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-    print(OPENAI_API_KEY)
+    # Do not print API keys to stdout (removed print to avoid leaking secrets)
     vectorstore = None 
     if collection_vector_service_options is not None: 
         vectorstore = AstraDBVectorStore(
