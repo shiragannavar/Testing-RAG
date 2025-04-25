@@ -1,3 +1,5 @@
-.env
-.gitignore
-.idea
+.env                  # environment variables
+.venv/                # Python virtual environment
+__pycache__/          # Python bytecode cache
+*.py[cod]             # compiled Python files
+.idea                 # JetBrains IDE project files
