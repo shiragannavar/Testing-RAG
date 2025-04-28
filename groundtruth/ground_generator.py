@@ -1,3 +1,10 @@
+from logging_config import setup_logging
+import logging
+
+# Configure structured logging
+setup_logging()
+logger = logging.getLogger(__name__)
+
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 import os

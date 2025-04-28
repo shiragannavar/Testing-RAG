@@ -126,9 +126,78 @@
                 opacity: 1;
             }
         }
+        /* Card hover effect */
+        .card {
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6);
+        }
+        /* Info tooltip styles */
+        .info-icon {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .info-icon::before {
+            content: "i";
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.2em;
+            height: 1.2em;
+            line-height: 1.2em;
+            border: 2px solid #FFD700;
+            border-radius: 50%;
+            text-align: center;
+            color: #FFD700;
+            font-size: 0.8em;
+            margin-left: 5px;
+            background: transparent;
+        }
+        .info-icon::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #FFFFFF;
+            padding: 8px 12px;
+            border-radius: 4px;
+            white-space: normal;
+            opacity: 0;
+            visibility: hidden;
+            width: max-content;
+            max-width: 200px;
+            font-size: 0.85rem;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 1000;
+        }
+        .info-icon:hover::after,
+        .info-icon.active::after {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
+    {% set descriptions = {
+        'precision': 'Precision: fraction of retrieved context passages that are relevant to the ground truth, reflecting retrieval accuracy.',
+        'recall': 'Recall: fraction of all ground truth contexts successfully retrieved by the retriever, reflecting retrieval coverage.',
+        'f1': 'F1 Score: harmonic mean of Precision and Recall, balancing both retrieval accuracy and coverage.',
+        'claim_recall': 'Claim Recall: percentage of ground truth claim statements retrieved by the system.',
+        'context_precision': 'Context Precision: proportion of retrieved passages that are actually relevant to the input query.',
+        'context_utilization': 'Context Utilization: proportion of useful context passages utilized by the generator during response generation.',
+        'noise_sensitivity_in_relevant': 'Noise Sensitivity (Relevant): indicates performance drop when introducing noise into relevant contexts.',
+        'noise_sensitivity_in_irrelevant': 'Noise Sensitivity (Irrelevant): indicates performance change when adding irrelevant contexts.',
+        'hallucination': 'Hallucination Rate: percentage of generated content not supported by any retrieved context, measuring ungrounded output.',
+        'self_knowledge': 'Self Knowledge: portion of generated content produced solely from the model’s pre-trained internal knowledge without using external contexts.',
+        'faithfulness': 'Faithfulness: measure of how accurately generated responses reflect the provided source contexts, indicating groundedness.'
+    } %}
     <!-- Header with Logo -->
     <div class="header">
         <img src="https://cdn.sanity.io/images/bbnkhnhl/production/4adfac551c9b503a6e53e99cbe24c4ea196cfd3a-3449x322.svg" alt="DataStax Logo">
@@ -142,7 +211,10 @@
             <div class="metrics-grid">
                 {% for key, value in metrics['overall_metrics'].items() %}
                 <div class="card">
-                    <h4>{{ key.replace('_', ' ').title() }}</h4>
+                    <h4>
+                        {{ key.replace('_', ' ').title() }}
+                        <span class="info-icon" data-tooltip="{{ descriptions[key] }}"></span>
+                    </h4>
                     <p>{{ value }}</p>
                 </div>
                 {% endfor %}
@@ -154,7 +226,10 @@
             <div class="metrics-grid">
                 {% for key, value in metrics['retriever_metrics'].items() %}
                 <div class="card">
-                    <h4>{{ key.replace('_', ' ').title() }}</h4>
+                    <h4>
+                        {{ key.replace('_', ' ').title() }}
+                        <span class="info-icon" data-tooltip="{{ descriptions[key] }}"></span>
+                    </h4>
                     <p>{{ value }}</p>
                 </div>
                 {% endfor %}
@@ -166,7 +241,10 @@
             <div class="metrics-grid">
                 {% for key, value in metrics['generator_metrics'].items() %}
                 <div class="card">
-                    <h4>{{ key.replace('_', ' ').title() }}</h4>
+                    <h4>
+                        {{ key.replace('_', ' ').title() }}
+                        <span class="info-icon" data-tooltip="{{ descriptions[key] }}"></span>
+                    </h4>
                     <p>{{ value }}</p>
                 </div>
                 {% endfor %}
@@ -178,5 +256,18 @@
     <div class="footer">
         Built with ❤ and Powered by DataStax
     </div>
+    <script>
+      document.querySelectorAll('.info-icon').forEach(function(icon) {
+        icon.addEventListener('click', function(event) {
+          event.stopPropagation();
+          icon.classList.toggle('active');
+        });
+      });
+      document.addEventListener('click', function() {
+        document.querySelectorAll('.info-icon.active').forEach(function(icon) {
+          icon.classList.remove('active');
+        });
+      });
+    </script>
 </body>
 </html>

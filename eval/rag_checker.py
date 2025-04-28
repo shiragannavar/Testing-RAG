@@ -1,4 +1,10 @@
 import os
+from logging_config import setup_logging
+import logging
+
+# Configure structured logging
+setup_logging()
+logger = logging.getLogger(__name__)
 import csv
 import json
 from langchain_community.embeddings import OpenAIEmbeddings
@@ -15,6 +21,8 @@ import pandas as pd
 from ragchecker import RAGResults, RAGChecker
 from ragchecker.metrics import all_metrics
 import tempfile, json
+from langchain_community.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate
 
 load_dotenv()
 
@@ -25,7 +33,7 @@ def get_default_rag_chain(
     ASTRA_DB_APPLICATION_TOKEN = os.environ["ASTRA_DB_APPLICATION_TOKEN"]
     ASTRA_DB_ENDPOINT = os.environ["ASTRA_DB_API_ENDPOINT"]
     OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-    print(OPENAI_API_KEY)
+    #print(OPENAI_API_KEY)
     vectorstore = None 
     if collection_vector_service_options is not None: 
         vectorstore = AstraDBVectorStore(
@@ -43,35 +51,47 @@ def get_default_rag_chain(
             api_endpoint=ASTRA_DB_ENDPOINT,
         )
     # Initialize OpenAI LLM
-    llm = OpenAI(openai_api_key=OPENAI_API_KEY)
+    llm = ChatOpenAI(
+        openai_api_key=OPENAI_API_KEY,
+        model_name="gpt-4o-mini",  # specify the model name here
+        temperature=0
+    )
+
     # Define the prompt template
     ANSWER_PROMPT = ChatPromptTemplate.from_template(
         """You are an expert assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know.
 
-            Context:
-            {context}
+        Context:
+        {context}
 
-            Question: "{question}"
-            Answer:"""
-            )
-    chain = {"question": RunnablePassthrough(), "context":vectorstore.as_retriever()} | ANSWER_PROMPT | llm 
-    return chain 
+        Question: "{question}"
+        Answer:"""
+    )
+
+    # Create the chain
+    chain = (
+            {"question": RunnablePassthrough(), "context": vectorstore.as_retriever()}
+            | ANSWER_PROMPT
+            | llm
+    )
+
+    return chain
 
 def run_eval(chain, ground_truth_file, run_name="rag-eval"):    
     qa_df = pd.read_csv(ground_truth_file)    
     for idx,row in qa_df.iterrows():
         q = row['question']
-        print(f"Asking Question: {q}")
+        logger.info("Asking question: %s", q)
         answer = chain.invoke(q)
-        print(f"Question: ${q} \n Answer: ${answer}")    
+        logger.info("Question answered: %s -> %s", q, answer)
     
 def start_phoenix_session(project_name = "rag-eval"):
     try:
         session = px.launch_app()    
-    except:
-        print('Phoenix is already running, retrieving active session')
+    except Exception:
+        logger.warning("Phoenix already running, retrieving active session")
         session = px.active_session()
-        print(session)
+        logger.info("Retrieved active Phoenix session: %s", session)
 
     tracer_provider = register(
             project_name=project_name, 
@@ -109,16 +129,17 @@ def get_ragchecker_input(session: px.Session,
     output = {'results': rag_checker_results}
     with open(ragchecker_file, 'w', encoding='utf-8') as jsonfile:
         json.dump(output, jsonfile, indent=2)
-    return rag_checker_results    
+    logger.info("Wrote RAGChecker input to %s", ragchecker_file)
+    return rag_checker_results
 
 def compute_ragchecker_metrics(input_file_name, metrics_file_name):
     with open(input_file_name) as fp:
         rag_results = RAGResults.from_json(fp.read())
     evaluator = RAGChecker(
-        extractor_name="openai/gpt-4-turbo",
-        checker_name="openai/gpt-4-turbo",
-        batch_size_extractor=10,
-        batch_size_checker=10
+        extractor_name="openai/gpt-4o-mini-2024-07-18",
+        checker_name="openai/gpt-4o-mini-2024-07-18",
+        batch_size_extractor=5,
+        batch_size_checker=5
     )
     evaluator.evaluate(rag_results, all_metrics)    
     if metrics_file_name is not None: 
