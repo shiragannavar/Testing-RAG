@@ -3,3 +3,12 @@
 __pycache__/          # Python bytecode cache
 *.py[cod]             # compiled Python files
 .idea                 # JetBrains IDE project files
+.github
+.gitignore
+groundtruth/__pycache__
+.env
+.DS_Store
+/.idea
+/__pycache__
+/eval/__pycache__
+/utils/__pycache__
