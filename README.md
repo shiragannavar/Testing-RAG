@@ -201,6 +201,13 @@ This code:
 Run the Flask app and navigate to `http://localhost:5000/` to view the evaluation metrics.
 
 
+## Example Visualization
+
+Below is an example of how the evaluation metrics and the historical visualization would look:
+![Metrics](screenshots/metrics.png)
+![Evaluation Graph](screenshots/eval-graph.png)
+
+
 ## AstraDB Integration
 
 AstraDB is used as the ground truth dataset store, allowing developers to store and update the grounding dataset as new data is added to the knowledge repository.
@@ -234,9 +241,3 @@ This project is licensed under the Apache-2.0.
 ---
 
 By using this framework, developers can focus on improving their RAG applications without worrying about the complexities of data generation and evaluation. It streamlines the entire process, from generating ground truth data to evaluating application performance, making it easier to build high-accuracy, production-ready RAG applications.
-
-## Example Visualization
-
-Below is an example of how the evaluation metrics visualization would look:
-
-![Evaluation Graph](screenshots/eval-graph.png)
