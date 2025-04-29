@@ -234,3 +234,9 @@ This project is licensed under the Apache-2.0.
 ---
 
 By using this framework, developers can focus on improving their RAG applications without worrying about the complexities of data generation and evaluation. It streamlines the entire process, from generating ground truth data to evaluating application performance, making it easier to build high-accuracy, production-ready RAG applications.
+
+## Example Visualization
+
+Below is an example of how the evaluation metrics visualization would look:
+
+![Evaluation Graph](screenshots/eval-graph.png)
