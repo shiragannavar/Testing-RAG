@@ -1,6 +1,7 @@
 import os
 from logging_config import setup_logging
 import logging
+from datetime import datetime
 
 # Configure structured logging
 setup_logging()
@@ -107,7 +108,10 @@ def get_ragchecker_input(session: px.Session,
     qa_df = pd.read_csv(ground_truth_file)
     gt_map = {}
     for idx,row in qa_df.iterrows():
-        gt_map[row['question'].strip()] = row['answer'].strip()
+        # Ensure we have string values even if original is float or NaN
+        q = str(row['question'])
+        a = str(row['answer'])
+        gt_map[q.strip()] = a.strip()
     if session is None:
         session = px.Client(endpoint="http://localhost:6006")
     spans = session.get_spans_dataframe(project_name=phoenix_project_name) 
@@ -132,7 +136,7 @@ def get_ragchecker_input(session: px.Session,
     logger.info("Wrote RAGChecker input to %s", ragchecker_file)
     return rag_checker_results
 
-def compute_ragchecker_metrics(input_file_name, metrics_file_name):
+def compute_ragchecker_metrics(input_file_name, metrics_file_name, graph_file_name="metrics-graph.json"):
     with open(input_file_name) as fp:
         rag_results = RAGResults.from_json(fp.read())
     evaluator = RAGChecker(
@@ -145,4 +149,24 @@ def compute_ragchecker_metrics(input_file_name, metrics_file_name):
     if metrics_file_name is not None: 
         with open(metrics_file_name, "w") as f:
             json.dump(rag_results.metrics, f)
+    # Update metrics graph file with timestamped metrics
+    timestamp = datetime.utcnow().isoformat() + "Z"
+    # Load existing graph data or initialize structure
+    if os.path.exists(graph_file_name):
+        with open(graph_file_name) as gf:
+            graph_data = json.load(gf)
+    else:
+        graph_data = {"timestamps": [], "overall_metrics": {}, "retriever_metrics": {}, "generator_metrics": {}}
+    # Append timestamp
+    graph_data["timestamps"].append(timestamp)
+    # Append new metric values to corresponding lists
+    for group in ["overall_metrics", "retriever_metrics", "generator_metrics"]:
+        metrics_group = rag_results.metrics.get(group, {})
+        gd_group = graph_data.setdefault(group, {})
+        for key, value in metrics_group.items():
+            gd_group.setdefault(key, []).append(value)
+    # Write updated graph data
+    with open(graph_file_name, "w") as gf:
+        json.dump(graph_data, gf, indent=2)
+    logger.info(f"Updated metrics graph file {graph_file_name} at {timestamp}")
     return rag_results.metrics

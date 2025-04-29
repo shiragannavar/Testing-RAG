@@ -186,17 +186,17 @@
 </head>
 <body>
     {% set descriptions = {
-        'precision': 'Precision: fraction of retrieved context passages that are relevant to the ground truth, reflecting retrieval accuracy.',
-        'recall': 'Recall: fraction of all ground truth contexts successfully retrieved by the retriever, reflecting retrieval coverage.',
+        'precision': 'Precision: Fraction of retrieved context passages that are relevant to the ground truth, reflecting retrieval accuracy.',
+        'recall': 'Recall: Fraction of all ground truth contexts successfully retrieved by the retriever, reflecting retrieval coverage.',
         'f1': 'F1 Score: harmonic mean of Precision and Recall, balancing both retrieval accuracy and coverage.',
-        'claim_recall': 'Claim Recall: percentage of ground truth claim statements retrieved by the system.',
-        'context_precision': 'Context Precision: proportion of retrieved passages that are actually relevant to the input query.',
-        'context_utilization': 'Context Utilization: proportion of useful context passages utilized by the generator during response generation.',
-        'noise_sensitivity_in_relevant': 'Noise Sensitivity (Relevant): indicates performance drop when introducing noise into relevant contexts.',
-        'noise_sensitivity_in_irrelevant': 'Noise Sensitivity (Irrelevant): indicates performance change when adding irrelevant contexts.',
-        'hallucination': 'Hallucination Rate: percentage of generated content not supported by any retrieved context, measuring ungrounded output.',
-        'self_knowledge': 'Self Knowledge: portion of generated content produced solely from the model’s pre-trained internal knowledge without using external contexts.',
-        'faithfulness': 'Faithfulness: measure of how accurately generated responses reflect the provided source contexts, indicating groundedness.'
+        'claim_recall': 'Claim Recall: Percentage of ground truth claim statements retrieved by the system.',
+        'context_precision': 'Context Precision: Proportion of retrieved passages that are actually relevant to the input query.',
+        'context_utilization': 'Context Utilization: Proportion of useful context passages utilized by the generator during response generation.',
+        'noise_sensitivity_in_relevant': 'Noise Sensitivity (Relevant): Indicates performance drop when introducing noise into relevant contexts.',
+        'noise_sensitivity_in_irrelevant': 'Noise Sensitivity (Irrelevant): Indicates performance change when adding irrelevant contexts.',
+        'hallucination': 'Hallucination Rate: Percentage of generated content not supported by any retrieved context, measuring ungrounded output.',
+        'self_knowledge': 'Self Knowledge: Portion of generated content produced solely from the models pre-trained internal knowledge without using external contexts.',
+        'faithfulness': 'Faithfulness: Measure of how accurately generated responses reflect the provided source contexts, indicating groundedness.'
     } %}
     <!-- Header with Logo -->
     <div class="header">
@@ -252,6 +252,26 @@
         </div>
     </div>
 
+    <!-- Trends Section -->
+    <div class="container">
+        <div class="section">
+            <h3>Metric Trends Over Time</h3>
+            {% for group, metrics_group in graph_data.items() if group != 'timestamps' %}
+            <div class="subsection">
+                <h4>{{ group.replace('_',' ')|title }}</h4>
+                <div class="metrics-grid">
+                    {% for metric_name, values in metrics_group.items() %}
+                    <div class="card">
+                        <h5>{{ metric_name.replace('_',' ')|title }}</h5>
+                        <canvas id="chart-{{ group }}-{{ metric_name }}"></canvas>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Footer -->
     <div class="footer">
         Built with ❤ and Powered by DataStax
@@ -266,6 +286,68 @@
       document.addEventListener('click', function() {
         document.querySelectorAll('.info-icon.active').forEach(function(icon) {
           icon.classList.remove('active');
+        });
+      });
+    </script>
+    <!-- Graph data JSON for Chart.js (hidden div) -->
+    <div id="graph-data" data-graph='{{ graph_data|tojson }}' style="display:none"></div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      // Parse graph data and render charts
+      const graphData = JSON.parse(document.getElementById('graph-data').getAttribute('data-graph'));
+      const timestamps = graphData.timestamps;
+      Object.entries(graphData).forEach(([group, metrics]) => {
+        if (group === 'timestamps') return;
+        Object.entries(metrics).forEach(([metricName, values]) => {
+          const canvasId = `chart-${group}-${metricName}`;
+          const ctx = document.getElementById(canvasId).getContext('2d');
+          new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: timestamps,
+              datasets: [{
+                label: metricName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                data: values,
+                borderColor: 'rgba(111, 207, 247, 0.8)',
+                backgroundColor: 'rgba(58, 185, 240, 0.2)',
+                tension: 0.4,
+                fill: false
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: {
+                  display: true,
+                  title: { display: true, text: 'Eval Run' },
+                  ticks: {
+                    callback: function(value, index, values) {
+                      return index + 1;
+                    }
+                  }
+                },
+                y: {
+                  display: true,
+                  title: { display: true, text: metricName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) },
+                  beginAtZero: true
+                }
+              },
+              plugins: {
+                legend: {
+                  display: false      // <-- hides the legend
+                },
+                tooltip: {
+                  callbacks: {
+                    title: function(tooltipItems) {
+                      const index = tooltipItems[0].dataIndex;
+                      const timestamp = new Date(timestamps[index]);
+                      return timestamp.toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    }
+                  }
+                }
+              }
+            }
+          });
         });
       });
     </script>

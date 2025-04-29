@@ -19,9 +19,9 @@ movies = [
 ]
 
 # Ground Truth Maker with Flash
-# images = pic.pdf_to_base64url("utils/System of Automation.pdf")
-# df = gg.generate_ground_truth_flash(images,save_to_AstraDB=False, save_to_file=True, file_name="gt.csv")
-# print(df)
+images = pic.pdf_to_base64url("utils/Systems of Automation DataStax.pdf")
+df = gg.generate_ground_truth_flash(images,save_to_AstraDB=False, save_to_file=True, file_name="gt.csv")
+print(df)
 # exit()
 
 # Ground Truth Maker with OpenAI
@@ -32,7 +32,7 @@ movies = [
 
 
 
-### Generate RAGChecker Metrics
+### Generate and Show RAGChecker Metrics
 
 import time
 import eval.rag_checker as rc
@@ -61,8 +61,14 @@ app = Flask(__name__)
 def display_metrics():
     with open(metrics_file_name, "r") as f:
         metrics = json.load(f)
-    return render_template("metrics.html", metrics=metrics)
+    # Load metrics graph data for charts (if available)
+    try:
+        with open("metrics-graph.json", "r") as gf:
+            graph_data = json.load(gf)
+    except FileNotFoundError:
+        graph_data = {"timestamps": [], "overall_metrics": {}, "retriever_metrics": {}, "generator_metrics": {}}
+    return render_template("metrics.html", metrics=metrics, graph_data=graph_data)
 
 if __name__ == "__main__":
     # Ensure Flask app starts after the rag_results are processed
-    app.run(debug=False)
+    app.run(debug=False, port=5001)
