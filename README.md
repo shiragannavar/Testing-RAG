@@ -34,6 +34,9 @@ Building RAG applications for testing is straightforward. However, developing pr
 - **AstraDB Storage**: Store and manage your datasets directly in AstraDB.
 - **Integrated with Phoenix Arize**: For Tracing and Monitoring your application.
 - **Flask Web Interface**: Visualize evaluation metrics via a simple web application.
+- **Metrics Visualization**: Visualize evaluation metrics through an interactive web interface.
+- **Troubleshooting Guide**: Provides solutions for common issues encountered during setup and usage.
+- **Advanced AstraDB Usage**: Offers tips for optimizing AstraDB queries and ensuring data integrity.
 
 ## Prerequisites
 
@@ -70,8 +73,26 @@ Building RAG applications for testing is straightforward. However, developing pr
 ## Usage
 
 ```python
-python -m example_client.py
+python -m main_client.py
 ```
+
+### Metrics Visualization
+
+To visualize the evaluation metrics, a Flask web application is provided. Follow these steps to set it up:
+
+1. Ensure all dependencies are installed as per the `requirements.txt`.
+2. Run the Flask application using the command:
+
+   ```bash
+   python main_client.py
+   ```
+
+3. Open your web browser and navigate to `http://localhost:5001/` to view the evaluation metrics.
+
+### Troubleshooting
+
+- **Common Issue 1**: If you encounter an error related to missing environment variables, ensure that your `.env` file is correctly set up with the necessary API keys and tokens.
+- **Common Issue 2**: If the Flask application does not start, check if the port 5001 is already in use or try running the application on a different port.
 
 ## Code Explanation
 
@@ -186,11 +207,21 @@ AstraDB is used as the ground truth dataset store, allowing developers to store 
 
 - **Setup**:
   - Ensure you have an AstraDB account and obtain the application token and API endpoint.
-  - Set the environment variables `ASTRA_DB_APPLICATION_TOKEN` and `ASTRA_DB_API_ENDPOINT`.
+  - Set the environment variables `ASTRA_DB_APPLICATION_TOKEN` and `ASTRA_DB_API_ENDPOINT` in your `.env` file.
 
-- **Usage**:
-  - The ground truth generator saves QA pairs to AstraDB when `save_to_AstraDB` is set to `True`.
-  - The RAG chain uses AstraDB as the vector store for retrieving context during evaluation.
+- **Advanced Usage**:
+  - For large datasets, consider optimizing your AstraDB queries to improve performance.
+  - Use AstraDB's built-in features for data replication and backup to ensure data integrity.
+
+## Environment Setup
+
+Ensure your `.env` file in the root directory includes the following variables:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+ASTRA_DB_APPLICATION_TOKEN=your_astradb_token
+ASTRA_DB_API_ENDPOINT=your_astradb_endpoint
+```
 
 ## Contributing
 
